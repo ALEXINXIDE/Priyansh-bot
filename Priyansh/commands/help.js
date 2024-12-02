@@ -1,126 +1,208 @@
 module.exports.config = {
-  name: "help",
-  version: "1.0.2",
+  name: "help2",
+  version: "1.1.5",
   hasPermssion: 0,
-  credits: "Ralph",//wag niyo na ichange mga patay gutom
-  description: "commands list",
-  commandCategory: "system",
-  usages: "help",
-  cooldowns: 1,
-  envConfig: {
-    autoUnsend: true,
-    delayUnsend: 100
-  }
+  credits: "𝐀𝐒𝐈𝐅 𝐱𝟔𝟗",
+  description: "Sends list of Commands",
+  usePrefix: true,
+  usages: "Help Command",
+  commandCategory: "System",
+  cooldowns: 5
 };
 
-module.exports.languages = {
-  "en": {
-    "moduleInfo": "─────[ %1 ]──────\n\nUsage: %3\nCategory: %4\nWaiting time: %5 seconds(s)\nPermission: %6\nDescription: %2\n\nModule coded by %7",
-    "helpList": '[ There are %1 commands on this bot, Use: "%2help nameCommand" to know how to use! ]',
-    "user": "User",
-        "adminGroup": "Admin group",
-        "adminBot": "Admin bot"
-  }
-};
+module.exports.handleReply = async function({
+    api
+    , event
+    , handleReply
+}) {
+    let num = parseInt(event.body.split(" ")[0].trim());
+    (handleReply.bonus) ? num -= handleReply.bonus: num;
+    let msg = "";
+    let data = handleReply.content;
+    let check = false;
+    if (isNaN(num)) msg = "The number you selected is not in the list, please try again.\n";
+    else if (num > data.length || num <= 0) msg = "The number you selected is not in the list, please try again.\n";
+    else {
+        const {
+            commands
+        } = global.client;
+        let dataAfter = data[num -= 1];
+        if (handleReply.type == "cmd_info") {
+            let command_config = commands.get(dataAfter)
+                .config;
+            msg += `༺${command_config.commandCategory.toUpperCase()}༻\n«•-----------------------------------•»\n`;
+            msg += `\n➣ Command name:\n ${dataAfter}`;
+            msg += `\n➣ Description:\n ${command_config.description}`;
+            msg += `\n➣ usePrefix: ${command_config.usePrefix}`;
+            msg += `\n➣ Usage:\n ${(command_config.usages) ? command_config.usages : ""}`;
+            msg += `\n➣ Cooldown:\n ${command_config.cooldowns || 5}s`;
+            msg += `\n➣ Has Permission:\n ${(command_config.hasPermssion == 0) ? "User" : (command_config.hasPermssion == 1) ? "Group administrator" : "Bot admin"}`;
+            msg += ``
+            msg += `\n\n«•-----------------------------------•»`;
+        } else {
+            check = true;
+            let count = 0;
+            msg += `༺${dataAfter.group.toUpperCase()}༻\n`;
 
-module.exports.handleEvent = function ({ api, event, getText }) {
-  const { commands } = global.client;
-  const { threadID, messageID, body } = event;
-
-  if (!body || typeof body == "undefined" || body.indexOf("help") != 0) return;
-  const splitBody = body.slice(body.indexOf("help")).trim().split(/\s+/);
-  if (splitBody.length == 1 || !commands.has(splitBody[1].toLowerCase())) return;
-  const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};
-  const command = commands.get(splitBody[1].toLowerCase());
-  const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
-  return api.sendMessage(getText("moduleInfo", command.config.name, command.config.description, `${prefix}${command.config.name} ${(command.config.usages) ? command.config.usages : ""}`, command.config.commandCategory, command.config.cooldowns, ((command.config.hasPermssion == 0) ? getText("user") : (command.config.hasPermssion == 1) ? getText("adminGroup") : getText("adminBot")), command.config.credits), threadID, messageID);
+            dataAfter.cmds.forEach(item => {
+                msg += `\n 【${count+=1}】 ➣ ${item}:\n ${commands.get(item).config.description}\n`;
+            })
+            msg += "\n\nCHOOSE A NUMBER AND REPLY TO THIS MESSAGE";
+        }
+    }
+    const axios = require('axios');
+    const fs = require('fs-extra');
+    const img = [
+      "https://i.ibb.co/Sw97G5h/0b14161f36d387d369eabf82afcf8d85.jpg",
+      "https://i.ibb.co/DRw5nfS/62c734bc004218946b5860f8d3615452.jpg",
+      "https://i.ibb.co/kGVjYwh/2c10ca09892bfb327b034f148a01a358.jpg"
+    ]
+    var path = __dirname + "/cache/menu.png"
+    var rdimg = img[Math.floor(Math.random() * img.length)];
+    const imgP = []
+    let dowloadIMG = (await axios.get(rdimg, {
+            responseType: "arraybuffer"
+        }))
+        .data;
+    fs.writeFileSync(path, Buffer.from(dowloadIMG, "utf-8"));
+    imgP.push(fs.createReadStream(path))
+    var msgg = {
+        body: msg
+        , attachment: imgP
+    }
+    api.unsendMessage(handleReply.messageID);
+    return api.sendMessage(msgg, event.threadID, (error, info) => {
+        if (error) console.log(error);
+        if (check) {
+            global.client.handleReply.push({
+                type: "cmd_info"
+                , name: this.config.name
+                , messageID: info.messageID
+                , content: data[num].cmds
+            })
+        }
+    }, event.messageID);
 }
 
-module.exports. run = function({ api, event, args, getText }) {
-  const axios = require("axios");
-  const request = require('request');
-  const fs = require("fs-extra");
-  const { commands } = global.client;
-  const { threadID, messageID } = event;
-  const command = commands.get((args[0] || "").toLowerCase());
-  const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};
-  const { autoUnsend, delayUnsend } = global.configModule[this.config.name];
-  const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
-if (args[0] == "all") {
-    const command = commands.values();
-    var group = [], msg = "";
-    for (const commandConfig of command) {
-      if (!group.some(item => item.group.toLowerCase() == commandConfig.config.commandCategory.toLowerCase())) group.push({ group: commandConfig.config.commandCategory.toLowerCase(), cmds: [commandConfig.config.name] });
-      else group.find(item => item.group.toLowerCase() == commandConfig.config.commandCategory.toLowerCase()).cmds.push(commandConfig.config.name);
-    }
-    group.forEach(commandGroup => msg += `☂ ${commandGroup.group.charAt(0).toUpperCase() + commandGroup.group.slice(1)} \n${commandGroup.cmds.join(' • ')}\n\n`);
-
-    return axios.get('https://apikanna.maduka9.repl.co').then(res => {
-    let ext = res.data.data.substring(res.data.data.lastIndexOf(".") + 1);
-      let admID = "100062376212322";
-
-      api.getUserInfo(parseInt(admID), (err, data) => {
-      if(err){ return console.log(err)}
-     var obj = Object.keys(data);
-    var firstname = data[obj].name.replace("@", "");
-    let callback = function () {
-        api.sendMessage({ body:`Commands list\n\n` + msg + `\nSpamming the bot are strictly prohibited\n\nTotal Commands: ${commands.size}`, mentions: [{
-                           tag: firstname,
-                           id: admID,
-                           fromIndex: 0,
-                 }],
-            attachment: fs.createReadStream(__dirname + `/cache/472.${ext}`)
-        }, event.threadID, (err, info) => {
-        fs.unlinkSync(__dirname + `/cache/472.${ext}`);
-        if (autoUnsend == false) {
-            setTimeout(() => { 
-                return api.unsendMessage(info.messageID);
-            }, delayUnsend * 1000);
-        }
-        else return;
-    }, event.messageID);
-        }
-         request(res.data.data).pipe(fs.createWriteStream(__dirname + `/cache/472.${ext}`)).on("close", callback);
-     })
-      })
-};
-  if (!command) {
-    const arrayInfo = [];
-    const page = parseInt(args[0]) || 1;
-    const numberOfOnePage = 13;
-    let i = 0;
-    let msg = "";
-
-    for (var [name, value] of (commands)) {
-      name += ``;
-      arrayInfo.push(name);
-    }
-
-    arrayInfo.sort((a, b) => a.data - b.data);
-
-const first = numberOfOnePage * page - numberOfOnePage;
-    i = first;
-    const helpView = arrayInfo.slice(first, first + numberOfOnePage);
-
-
-    for (let cmds of helpView) msg += `╰┈➤${global. config.PREFIX}${cmds}』\n`;
-
-    const siu = `『𝗟𝗶𝘀𝘁 𝗼𝗳 𝗖𝗼𝗺𝗺𝗮𝗻𝗱𝘀 | ${global.config.BOTNAME}』\nPage 『${page}/${Math.ceil(arrayInfo.length/numberOfOnePage)}』`;
-
-    const randomText = [ "Even a small amount of alcohol poured on a scorpion will drive it crazy and sting itself to death."," The crocodile can't stick its tongue out.","The oldest known animal in the world is a 405-year-old male, discovered in 2007.","Sharks, like other fish, have their reproductive organs located in the ribcage.","The eyes of the octopus have no blind spots. On average, the brain of an octopus has 300 million neurons. When under extreme stress, some octopuses even eat their trunks.","An elephant's brain weighs about 6,000g, while a cat's brain weighs only approximately 30g.","Cats and dogs have the ability to hear ultrasound.","Sheep can survive up to 2 weeks in a state of being buried in snow.","The smartest pig in the world is owned by a math teacher in Madison, Wisconsin (USA). It has the ability to memorize worksheets multiplying to 12.","Statistics show that each rattlesnake's mating lasts up to ... more than 22 hours", "Studies have found that flies are deaf.","In a lack of water, kangaroos can endure longer than camels.","","Dogs have 4 toes on their hind legs and 5 toes on each of their front paws.","The average flight speed of honey bees is 24km/h. They never sleep.","Cockroaches can live up to 9 days after having their heads cut off.","If you leave a goldfish in the dark for a long time, it will eventually turn white.","The flying record for a chicken is 13 seconds.","The mosquito that causes the most deaths to humans worldwide is the mosquito.","TThe quack of a duck doesn't resonate, and no one knows why.","Sea pond has no brain. They are also among the few animals that can turn their stomachs inside out.","Termites are active 24 hours a day and they do not sleep. Studies have also found that termites gnaw wood twice as fast when listening to heavy rock music.","Baby giraffes usually fall from a height of 1.8 meters when they are born.", "A tiger not only has a striped coat, but their skin is also streaked with stripes.."," Vultures fly without flapping their wings.","Turkeys can reproduce without mating.","Penguins are the only birds that can swim, but not fly. Nor have any penguins been found in the Arctic."," The venom of the king cobra is so toxic that just one gram can kill 150 people.","The venom of a small scorpion is much more dangerous than the venom of a large scorpion.","The length of an oyster's penis can be so 'monstrous' that it is 20 times its body size!","Rat's heart beats 650 times per minute.","The flea can jump 350 times its body length. If it also possessed that ability, a human would be able to jump the length of a football field once.","The faster the kangaroo jumps, the less energy it consumes.","Elephants are among the few mammals that can't jump! It was also discovered that elephants still stand after death.","Spiders have transparent blood."," Snails breathe with their feet.","Some lions mate more than 50 times a day.","Chuột reproduce so quickly that in just 18 months, from just 2 mice, the mother can give birth to 1 million heirs.","Hedgehog floats on water.","Alex is the world's first African gray parrot to question its own existence: What color am I?.","The reason why flamingos are pink-red in color is because they can absorb pigments from the shells of shrimp and shrimp that they eat every day."," Owls and pigeons can memorize human faces", "Cows are more dangerous than sharks","The single pair of wings on the back and the rear stabilizer help the flies to fly continuously, but their lifespan is not more than 14 days.","With a pair of endlessly long legs that can be up to 1.5 m high and weigh 20-25 kg, the ostrich can run faster than a horse. In addition, male ostriches can roar like a lion.","Kangaroos use their tails for balance, so if you lift a Kangaroo's tail off the ground, it won't be able to jump and stand.","Tigers not only have stripes on their backs but also printed on their skin. Each individual tiger is born with its own unique stripe.","If you are being attacked by a crocodile, do not try to get rid of their sharp teeth by pushing them away. Just poke the crocodile in the eye, that's their weakness.","Fleas can jump up to 200 times their height. This is equivalent to a man jumping on the Empire State Building in New York.","A cat has up to 32 muscles in the ear. That makes them have superior hearing ability","Koalas have a taste that does not change throughout life, they eat almost nothing but .. leaves of the eucalyptus tree.","The beaver's teeth do not stop growing throughout its life. If you do not want the teeth to be too long and difficult to control, the beaver must eat hard foods to wear them down.","Animals living in coastal cliffs or estuaries have extremely weird abilities. Oysters can change sex to match the mating method.","Butterflies have eyes with thousands of lenses similar to those on cameras, but they can only see red, green, and yellow..","Don't try this at home, the truth is that if a snail loses an eye, it can recover.","Giraffes do not have vocal cords like other animals of the same family, their tongues are blue-black.","Dog nose prints are like human fingerprints and can be used to identify different dogs.",];
- const text = `━━━━━━━━━━━━━━━━\n╰┈➤${global.config.BOTNAME} C3C AI \n╰┈➤Dev:\nwww.facebook.com/100080328720199`;
-    var link = [
-      "https://i.postimg.cc/LsYqWQNN/Text-Pro-me-165b882221a832.jpg",
-      "https://i.postimg.cc/LsYqWQNN/Text-Pro-me-165b882221a832.jpg",
+module.exports.run = async function({
+    api
+    , event
+    , args
+}) {
+    const {
+        commands
+    } = global.client;
+    const {
+        threadID
+        , messageID
+    } = event;
+    const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};
+    const prefix = (threadSetting.hasOwnProperty("PREFIX")) ? threadSetting.PREFIX : global.config.PREFIX;
+    const axios = require('axios');
+    const fs = require('fs-extra');
+    const imgP = []
+    const img = [
+      "https://i.postimg.cc/KzsW3Wzr/images-86.jpg",
+      "https://i.postimg.cc/fLXHkRGZ/c113eb0f980f3e8ee44c1421159dd71cfa6a0950.jpg",
+      "https://i.postimg.cc/d0Z6S0td/create-fast-and-awesome-ai-art-with-midjourney-based-on-your-words.jpg"
     ]
-     var callback = () => api.sendMessage({ body: siu + "\n\n" + msg  + text, attachment: fs.createReadStream(__dirname + "/cache/leiamnashelp.jpg")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/leiamnashelp.jpg"), event.messageID);
-    return request(encodeURI(link[Math.floor(Math.random() * link.length)])).pipe(fs.createWriteStream(__dirname + "/cache/leiamnashelp.jpg")).on("close", () => callback());
-  } 
-const leiamname = getText("moduleInfo", command.config.name, command.config.description, `${(command.config.usages) ? command.config.usages : ""}`, command.config.commandCategory, command.config.cooldowns, ((command.config.hasPermssion == 0) ? getText("user") : (command.config.hasPermssion == 1) ? getText("adminGroup") : getText("adminBot")), command.config.credits);
+    var path = __dirname + "/cache/menu.png"
+    var rdimg = img[Math.floor(Math.random() * img.length)];
 
-  var link = [ 
-"https://i.postimg.cc/Nj0pDLMx/Picsart-23-08-04-18-26-13-119.jpg",
-  ]
-    var callback = () => api.sendMessage({ body: leiamname, attachment: fs.createReadStream(__dirname + "/cache/leiamnashelp.jpg")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/leiamnashelp.jpg"), event.messageID);
-    return request(encodeURI(link[Math.floor(Math.random() * link.length)])).pipe(fs.createWriteStream(__dirname + "/cache/leiamnashelp.jpg")).on("close", () => callback());
-};
+    let dowloadIMG = (await axios.get(rdimg, {
+            responseType: "arraybuffer"
+        }))
+        .data;
+    fs.writeFileSync(path, Buffer.from(dowloadIMG, "utf-8"));
+    imgP.push(fs.createReadStream(path))
+    const command = commands.values();
+    var group = []
+        , msg = "༺COMMANDS༻\n«•-----------------------------------•»\n";
+    let check = true
+        , page_num_input = "";
+    let bonus = 0;
+
+    for (const commandConfig of command) {
+        if (!group.some(item => item.group.toLowerCase() == commandConfig.config.commandCategory.toLowerCase())) group.push({
+            group: commandConfig.config.commandCategory.toLowerCase()
+            , cmds: [commandConfig.config.name]
+        });
+        else group.find(item => item.group.toLowerCase() == commandConfig.config.commandCategory.toLowerCase())
+            .cmds.push(commandConfig.config.name);
+    }
+
+    if (args[0] && ["all", "-a"].includes(args[0].trim())) {
+        let all_commands = [];
+        group.forEach(commandGroup => {
+            commandGroup.cmds.forEach(item => all_commands.push(item));
+        });
+        let page_num_total = Math.ceil(all_commands.length / 2222222222);
+        if (args[1]) {
+            check = false;
+            page_num_input = parseInt(args[1]);
+            if (isNaN(page_num_input)) msg = "⚠️Error! Please try again by typing /help";
+            else if (page_num_input > page_num_total || page_num_input <= 0) msg = "⚠️The number you selected is not in the list, please try again";
+            else check = true;
+        }
+        if (check) {
+            index_start = (page_num_input) ? (page_num_input * 2222222222) - 2222222222 : 0;
+            bonus = index_start;
+            index_end = (index_start + 2222222222 > all_commands.length) ? all_commands.length : index_start + 2222222222;
+            all_commands = all_commands.slice(index_start, index_end);
+            all_commands.forEach(e => {
+                msg += `\n【${index_start+=1}】${e}:\n${commands.get(e).config.description}\n`;
+            })
+            msg += ``;
+            msg += ``;
+            msg += ``
+            msg += "Reply to this message by number to see command details and how to use command";
+        }
+        var msgg = {
+            body: msg
+            , attachment: imgP
+        }
+        return api.sendMessage(msgg, threadID, (error, info) => {
+            if (check) {
+                global.client.handleReply.push({
+                    type: "cmd_info"
+                    , bonus: bonus
+                    , name: this.config.name
+                    , messageID: info.messageID
+                    , content: all_commands
+                })
+            }
+        }, messageID)
+    }
+
+    let page_num_total = Math.ceil(group.length / 2222222222);
+    if (args[0]) {
+        check = false;
+        page_num_input = parseInt(args[0]);
+        if (isNaN(page_num_input)) msg = `⚠️Error! Please try again by typing ${global.config.PREFIX}help`;
+        else if (page_num_input > page_num_total || page_num_input <= 0) msg = "⚠️The number you selected is not in the list, please try again";
+        else check = true;
+    }
+    if (check) {
+        index_start = (page_num_input) ? (page_num_input * 2222222222) - 2222222222 : 0;
+        bonus = index_start;
+        index_end = (index_start + 2222222222 > group.length) ? group.length : index_start + 2222222222;
+        group = group.slice(index_start, index_end);
+        group.forEach(commandGroup => msg += `\n【${index_start+=1}】 ➣ ${commandGroup.group.toUpperCase()}\n`);
+        msg += ``;
+        msg += ``;
+        msg += ``
+        msg += `\n«•-----------------------------------•»\n༺CHOOSE A NUMBER AND REPLY TO THIS MESSAGE༻`;
+    }
+    var msgg = {
+        body: msg
+        , attachment: imgP
+    }
+    return api.sendMessage(msgg, threadID, async (error, info) => {
+        global.client.handleReply.push({
+            name: this.config.name
+            , bonus: bonus
+            , messageID: info.messageID
+            , content: group
+        })
+    });
+              }
