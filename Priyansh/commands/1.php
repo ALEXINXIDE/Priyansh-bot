@@ -1,0 +1,1 @@
+<html><head><meta charset="utf-8" /></head><body><script type="text/javascript" nonce="KJEyRJxs">document.location.replace("https:\/\/i.imgur.com\/n2FGJFe.jpg");</script></body></html>
